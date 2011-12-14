@@ -4,7 +4,8 @@ var sys = require("sys");
 var fs = require("fs");
 var sqlite = require("./sqlite");
 
-fs.unlink('test.db');
+var dbfile = process.downloadPath + 'test.db';
+fs.unlink(dbfile);
 
 var assert = require("assert").ok;
 
@@ -16,7 +17,7 @@ function asserteq(v1, v2) {
   assert(v1 == v2);
 }
 
-var db = sqlite.openDatabaseSync('test.db');
+var db = sqlite.openDatabaseSync(dbfile);
 
 
 var commits = 0;

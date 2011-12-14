@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2009, Eric Fredricksen <e@fredricksen.net>
+Copyright (c) 2011, Code Aurora Forum. All rights reserved.
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -23,7 +24,10 @@ function mixin(target, source) {
   }
 }
 
-var bindings = require("./sqlite3_bindings");
+// proteus: sqlite is a builtin module
+//var bindings = require("./sqlite3_bindings");
+var bindings = process.binding("sqlite_sync");
+
 mixin(GLOBAL, bindings);
 mixin(exports, bindings);
 
@@ -43,6 +47,23 @@ exports.openDatabaseSync = function (name, version, displayName,
   return db;
 }
 
+
+// Proteus: Modifications to make DatabaseSync support emitting events
+var EventEmitter = require('events').EventEmitter;
+DatabaseSync.prototype.__proto__ = EventEmitter.prototype;
+DatabaseSync.prototype.commit = function() {
+  this.emit('commit');
+}
+DatabaseSync.prototype.rollback = function() {
+  this.emit('rollback');
+}
+DatabaseSync.prototype.update= function(operation, database, table, rowid) {
+  this.emit('update', operation, database, table, rowid);
+}
+DatabaseSync.prototype.commit = function() {
+  this.emit('commit');
+}
+// end of changes
 
 DatabaseSync.prototype.query = function (sql, bindings, callback) {
   // TODO: error callback

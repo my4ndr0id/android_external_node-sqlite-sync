@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2009, Eric Fredricksen <e@fredricksen.net>
+Copyright (c) 2011, Code Aurora Forum. All rights reserved.
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -16,7 +17,6 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <sqlite3.h>
 #include <v8.h>
 #include <node.h>
-#include <node_events.h>
 
 using namespace v8;
 using namespace node;
@@ -60,7 +60,7 @@ using namespace node;
 
 
 
-class Sqlite3Db : public EventEmitter
+class Sqlite3Db : public ObjectWrap
 {
 public:
   static void Init(v8::Handle<Object> target) 
@@ -69,7 +69,6 @@ public:
     
     Local<FunctionTemplate> t = FunctionTemplate::New(New);
     
-    t->Inherit(EventEmitter::constructor_template);
     t->InstanceTemplate()->SetInternalFieldCount(1);
     
     NODE_SET_PROTOTYPE_METHOD(t, "changes", Changes);
@@ -100,6 +99,7 @@ protected:
     REQ_STR_ARG(0, filename);
     sqlite3* db;
     int rc = sqlite3_open(*filename, &db);
+    NODE_LOGI("creating database file: %s", *filename);
     if (rc) return ThrowException(Exception::Error(                     
                                      String::New("Error opening database")));
     Sqlite3Db* dbo = new Sqlite3Db(db);
@@ -142,7 +142,7 @@ protected:
   static int CommitHook(void* v_this) {
     HandleScope scope;
     Sqlite3Db* db = static_cast<Sqlite3Db*>(v_this);
-    db->Emit(String::New("commit"), 0, NULL); 
+    Node::MakeCallback(db->handle_, "commit", 0, NULL);
     // TODO: allow change in return value to convert to rollback...somehow
     return 0;
   }
@@ -150,7 +150,7 @@ protected:
   static void RollbackHook(void* v_this) {
     HandleScope scope;
     Sqlite3Db* db = static_cast<Sqlite3Db*>(v_this);
-    db->Emit(String::New("rollback"), 0, NULL); 
+    Node::MakeCallback(db->handle_, "rollback", 0, NULL);
   }
 
   static void UpdateHook(void* v_this, int operation, const char* database, 
@@ -159,7 +159,7 @@ protected:
     Sqlite3Db* db = static_cast<Sqlite3Db*>(v_this);
     Local<Value> args[] = { Int32::New(operation), String::New(database),
                             String::New(table), Number::New(rowid) };
-    db->Emit(String::New("update"), 4, args);
+    Node::MakeCallback(db->handle_, "update", 4, args);
   }
 
   /*
@@ -195,7 +195,7 @@ protected:
     return scope.Close(statement);
   }
 
-  class Statement : public EventEmitter
+  class Statement : public ObjectWrap
   {
   public:
     static Persistent<FunctionTemplate> constructor_template;
@@ -206,7 +206,6 @@ protected:
       Local<FunctionTemplate> t = FunctionTemplate::New(New);
       constructor_template = Persistent<FunctionTemplate>::New(t);
       
-      t->Inherit(EventEmitter::constructor_template);
       t->InstanceTemplate()->SetInternalFieldCount(1);
       
       NODE_SET_PROTOTYPE_METHOD(t, "bind", Bind);
@@ -353,9 +352,6 @@ protected:
 
 Persistent<FunctionTemplate> Sqlite3Db::Statement::constructor_template;
 
-
-extern "C" void init (v8::Handle<Object> target)
-{
-  Sqlite3Db::Init(target);
-}
+// Proteus: make this a builtin module
+NODE_MODULE(node_sqlite_sync, Sqlite3Db::Init);
 

@@ -1,19 +1,12 @@
 // Speed test for SQL. Based on http://www.sqlite.org/speed.html
 
-var sys = require("sys");
-var posix = require("posix");
-
-try {
-  posix.unlink("speedtest.db").wait();
-} catch (e) {
-  // Not there? That's okay.
-}
 
 function connect() {
   if (true) {
     // node-sqlite
     var sqlite = require("./sqlite");
-    var db = sqlite.openDatabaseSync("speedtest.db");
+    try { require('fs').unlinkSync('./speedtest.db'); } catch (e) {}
+    var db = sqlite.openDatabaseSync("./speedtest.db");
   } else {
     // node-persistence
     // TODO: this doesn't work yet
@@ -66,7 +59,7 @@ function time(section) {
   var now = (new Date()).getTime();
   if (SECTION) {
     var elapsed = ((now - LASTTIME)/1000.0).toFixed(3);
-    sys.puts(elapsed + ' ' + SECTION);
+    console.log(SECTION + ' ' + elapsed + 's');
   }
   SECTION = section;
   LASTTIME = now;
