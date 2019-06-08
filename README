@@ -12,5 +12,5 @@ Tested with Node version v0.4.11
 
 NOTE:
 
-Only synchronous access is supported! For an an ansynchronous 
+Only synchronous access is supported! For an ansynchronous 
 library, see http://github.com/orlandov/node-sqlite
